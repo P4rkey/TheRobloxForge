@@ -1,0 +1,1187 @@
+1import React, { useState, useEffect, useRef } from "react";
+2import {
+3  Sparkles,
+4  CheckCircle2,
+5  ChevronDown,
+6  Code2,
+7  Layers,
+8  Bot,
+9  ScrollText,
+10  Coins,
+11  Rocket,
+12  ArrowRight,
+13  Users,
+14  Send,
+15  Youtube,
+16  MessageSquare,
+17  ShieldCheck,
+18  Gamepad2,
+19  Check,
+20  Zap,
+21  X
+22} from "lucide-react";
+23
+24// Uploaded image URL for the Lua Code Screenshot
+25const heroImageUrl = "https://storage.googleapis.com/producer-app-public/producer/65c8b7d5-0889-40aa-add5-86eba12b958f";
+26
+27// ==================== SUBCOMPONENTS ====================
+28
+29function InteractiveBackground() {
+30  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+31
+32  useEffect(() => {
+33    const canvas = canvasRef.current;
+34    if (!canvas) return;
+35    const ctx = canvas.getContext("2d");
+36    if (!ctx) return;
+37
+38    let animationFrameId: number;
+39    let width = (canvas.width = window.innerWidth);
+40    let height = (canvas.height = window.innerHeight);
+41
+42    const handleResize = () => {
+43      if (!canvas) return;
+44      width = canvas.width = window.innerWidth;
+45      height = canvas.height = window.innerHeight;
+46    };
+47    window.addEventListener("resize", handleResize);
+48
+49    const particleCount = 55;
+50    const particles: Array<{
+51      x: number;
+52      y: number;
+53      vx: number;
+54      vy: number;
+55      size: number;
+56      color: string;
+57      alpha: number;
+58      pulseSpeed: number;
+59    }> = [];
+60
+61    const colors = ["#8B5CF6", "#EC4899", "#F43F5E", "#D946EF", "#F59E0B", "#38BDF8"];
+62
+63    for (let i = 0; i < particleCount; i++) {
+64      particles.push({
+65        x: Math.random() * width,
+66        y: Math.random() * height,
+67        vx: (Math.random() - 0.5) * 1.2,
+68        vy: (Math.random() - 0.5) * 1.2,
+69        size: Math.random() * 3.5 + 1.5,
+70        color: colors[Math.floor(Math.random() * colors.length)],
+71        alpha: Math.random() * 0.7 + 0.3,
+72        pulseSpeed: Math.random() * 0.03 + 0.01,
+73      });
+74    }
+75
+76    let mouseX = width / 2;
+77    let mouseY = height / 2;
+78
+79    const handleMouseMove = (e: MouseEvent) => {
+80      mouseX = e.clientX;
+81      mouseY = e.clientY;
+82    };
+83    window.addEventListener("mousemove", handleMouseMove);
+84
+85    let time = 0;
+86    const render = () => {
+87      time += 0.02;
+88      ctx.clearRect(0, 0, width, height);
+89
+90      for (let i = 0; i < particles.length; i++) {
+91        for (let j = i + 1; j < particles.length; j++) {
+92          const dx = particles[i].x - particles[j].x;
+93          const dy = particles[i].y - particles[j].y;
+94          const dist = Math.sqrt(dx * dx + dy * dy);
+95
+96          if (dist < 140) {
+97            ctx.beginPath();
+98            ctx.moveTo(particles[i].x, particles[i].y);
+99            ctx.lineTo(particles[j].x, particles[j].y);
+100            ctx.strokeStyle = `rgba(217, 70, 239, ${0.25 * (1 - dist / 140)})`;
+101            ctx.lineWidth = 1.2;
+102            ctx.stroke();
+103          }
+104        }
+105      }
+106
+107      particles.forEach((p, idx) => {
+108        p.x += p.vx + Math.sin(time * 0.5 + idx) * 0.3;
+109        p.y += p.vy + Math.cos(time * 0.5 + idx) * 0.3;
+110
+111        if (p.x < 0) p.x = width;
+112        if (p.x > width) p.x = 0;
+113        if (p.y < 0) p.y = height;
+114        if (p.y > height) p.y = 0;
+115
+116        const mdx = mouseX - p.x;
+117        const mdy = mouseY - p.y;
+118        const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+119        if (mdist < 160) {
+120          p.x -= (mdx / mdist) * 0.8;
+121          p.y -= (mdy / mdist) * 0.8;
+122        }
+123
+124        const currentAlpha = p.alpha + Math.sin(time * p.pulseSpeed * 10) * 0.2;
+125
+126        ctx.beginPath();
+127        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+128        ctx.fillStyle = p.color;
+129        ctx.globalAlpha = Math.max(0.1, Math.min(1, currentAlpha));
+130        ctx.shadowBlur = 14;
+131        ctx.shadowColor = p.color;
+132        ctx.fill();
+133        ctx.shadowBlur = 0;
+134        ctx.globalAlpha = 1.0;
+135      });
+136
+137      animationFrameId = requestAnimationFrame(render);
+138    };
+139
+140    render();
+141
+142    return () => {
+143      window.removeEventListener("resize", handleResize);
+144      window.removeEventListener("mousemove", handleMouseMove);
+145      cancelAnimationFrame(animationFrameId);
+146    };
+147  }, []);
+148
+149  return (
+150    <canvas
+151      ref={canvasRef}
+152      className="fixed inset-0 pointer-events-none z-0 opacity-85"
+153    />
+154  );
+155}
+156
+157interface HeaderProps {
+158  scrollProgress: number;
+159  onOpenEnroll: (tariff: string, e: React.MouseEvent<HTMLElement>) => void;
+160  onScrollTo: (e: React.MouseEvent<HTMLAnchorElement>, id: string) => void;
+161}
+162
+163function Header({ scrollProgress, onOpenEnroll, onScrollTo }: HeaderProps) {
+164  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+165
+166  return (
+167    <header className="fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-2xl bg-[#090D16]/95 border-b border-white/10 transition-all duration-300 shadow-2xl">
+168      <div className="absolute bottom-0 left-0 h-[3px] bg-slate-900/50 w-full overflow-hidden">
+169        <div
+170          className="h-full running-border transition-all duration-150 ease-out"
+171          style={{ width: `${scrollProgress}%` }}
+172        />
+173      </div>
+174
+175      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+176        <a href="#" className="flex items-center gap-2.5 sm:gap-3 group">
+177          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-[#7C3AED] via-[#D946EF] to-[#F43F5E] flex items-center justify-center text-white shadow-lg shadow-purple-500/40 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+178            <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6" />
+179          </div>
+180          <span className="font-heading font-black text-base sm:text-2xl tracking-tight animated-gradient-text group-hover:scale-105 transition-transform duration-300">
+181            THE ROBLOX FORGE
+182          </span>
+183        </a>
+184
+185        <nav className="hidden md:flex items-center gap-6 lg:gap-8 font-semibold text-slate-300 text-sm">
+186          <a href="#about" onClick={(e) => onScrollTo(e, "about")} className="nav-link py-2 hover:text-pink-400">О курсе</a>
+187          <a href="#skills" onClick={(e) => onScrollTo(e, "skills")} className="nav-link py-2 hover:text-pink-400">Навыки</a>
+188          <a href="#program" onClick={(e) => onScrollTo(e, "program")} className="nav-link py-2 hover:text-pink-400">Программа</a>
+189          <a href="#tariffs" onClick={(e) => onScrollTo(e, "tariffs")} className="nav-link py-2 hover:text-pink-400">Тарифы</a>
+190          <a href="#faq" onClick={(e) => onScrollTo(e, "faq")} className="nav-link py-2 hover:text-pink-400">FAQ</a>
+191        </nav>
+192
+193        <div className="hidden md:flex items-center gap-4">
+194          <a
+195            href="https://t.me/awak3n1n"
+196            target="_blank"
+197            rel="noopener noreferrer"
+198            className="gradient-btn text-white px-6 sm:px-7 py-2.5 rounded-full font-bold text-sm shadow-xl shadow-purple-500/30 transition-all flex items-center justify-center hover:scale-105 active:scale-95 min-h-[44px]"
+199          >
+200            <span>Начать</span>
+201          </a>
+202        </div>
+203
+204        <button
+205          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+206          aria-label="Открыть меню"
+207          className="md:hidden w-11 h-11 rounded-xl bg-slate-900/90 border border-white/15 flex flex-col items-center justify-center gap-1.5 text-slate-200 hover:text-pink-400 focus:outline-none active:scale-90 transition-all duration-300"
+208        >
+209          <span className={`w-5 h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+210          <span className={`w-5 h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? 'opacity-0 scale-0' : 'opacity-100'}`} />
+211          <span className={`w-5 h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+212        </button>
+213      </div>
+214
+215      <div
+216        className={`md:hidden overflow-hidden transition-all duration-500 ease-in-out bg-[#090D16]/98 border-b border-pink-500/30 backdrop-blur-3xl ${
+217          mobileMenuOpen ? 'max-h-[440px] opacity-100 py-4 px-4' : 'max-h-0 opacity-0 py-0 px-4 pointer-events-none'
+218        }`}
+219      >
+220        <div className="flex flex-col gap-1.5 text-left max-w-md mx-auto">
+221          <a
+222            href="#about"
+223            onClick={(e) => { onScrollTo(e, "about"); setMobileMenuOpen(false); }}
+224            className="py-3 px-4 min-h-[48px] rounded-xl font-bold text-base text-slate-200 hover:text-white hover:bg-slate-900/80 active:bg-pink-900/40 transition-all flex items-center justify-between"
+225          >
+226            <span>О курсе</span>
+227            <span className="text-xs text-pink-400 font-mono">01</span>
+228          </a>
+229          <a
+230            href="#skills"
+231            onClick={(e) => { onScrollTo(e, "skills"); setMobileMenuOpen(false); }}
+232            className="py-3 px-4 min-h-[48px] rounded-xl font-bold text-base text-slate-200 hover:text-white hover:bg-slate-900/80 active:bg-pink-900/40 transition-all flex items-center justify-between"
+233          >
+234            <span>Навыки</span>
+235            <span className="text-xs text-pink-400 font-mono">02</span>
+236          </a>
+237          <a
+238            href="#program"
+239            onClick={(e) => { onScrollTo(e, "program"); setMobileMenuOpen(false); }}
+240            className="py-3 px-4 min-h-[48px] rounded-xl font-bold text-base text-slate-200 hover:text-white hover:bg-slate-900/80 active:bg-pink-900/40 transition-all flex items-center justify-between"
+241          >
+242            <span>Программа</span>
+243            <span className="text-xs text-pink-400 font-mono">03</span>
+244          </a>
+245          <a
+246            href="#tariffs"
+247            onClick={(e) => { onScrollTo(e, "tariffs"); setMobileMenuOpen(false); }}
+248            className="py-3 px-4 min-h-[48px] rounded-xl font-bold text-base text-slate-200 hover:text-white hover:bg-slate-900/80 active:bg-pink-900/40 transition-all flex items-center justify-between"
+249          >
+250            <span>Тарифы</span>
+251            <span className="text-xs text-pink-400 font-mono">04</span>
+252          </a>
+253          <a
+254            href="#faq"
+255            onClick={(e) => { onScrollTo(e, "faq"); setMobileMenuOpen(false); }}
+256            className="py-3 px-4 min-h-[48px] rounded-xl font-bold text-base text-slate-200 hover:text-white hover:bg-slate-900/80 active:bg-pink-900/40 transition-all flex items-center justify-between"
+257          >
+258            <span>FAQ</span>
+259            <span className="text-xs text-pink-400 font-mono">05</span>
+260          </a>
+261
+262          <a
+263            href="https://t.me/awak3n1n"
+264            target="_blank"
+265            rel="noopener noreferrer"
+266            onClick={() => setMobileMenuOpen(false)}
+267            className="gradient-btn text-white w-full py-3.5 min-h-[52px] rounded-2xl font-black text-base shadow-xl mt-2 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+268          >
+269            <span>Записаться в Telegram</span>
+270            <ArrowRight className="w-5 h-5" />
+271          </a>
+272        </div>
+273      </div>
+274    </header>
+275  );
+276}
+277
+278interface HeroProps {
+279  heroImageUrl: string;
+280  onOpenEnroll: (tariff: string, e: React.MouseEvent<HTMLElement>) => void;
+281  onScrollTo: (e: React.MouseEvent<HTMLAnchorElement>, id: string) => void;
+282}
+283
+284function Hero({ heroImageUrl, onOpenEnroll, onScrollTo }: HeroProps) {
+285  return (
+286    <section id="about" className="py-8 sm:py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto relative overflow-x-hidden">
+287      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
+288
+289        <div className="lg:col-span-7 flex flex-col items-start text-left stagger-anim-1">
+290          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-heading font-black tracking-tight text-white leading-[1.15] mb-4">
+291            Научись программировать <br />
+292            <span className="animated-gradient-text text-3xl sm:text-5xl lg:text-6xl block mt-1.5 font-heading font-black tracking-tight inline-block">
+293              через 30 дней
+294            </span>
+295          </h1>
+296
+297          <p className="text-base sm:text-xl text-slate-300 max-w-xl font-normal leading-relaxed mb-6">
+298            Создай свою первую игру в Roblox с нуля. Понятная информация, готовые скрипты и поддержка на каждом этапе.
+299          </p>
+300
+301          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mb-2">
+302            <a
+303              href="https://t.me/awak3n1n"
+304              target="_blank"
+305              rel="noopener noreferrer"
+306              className="gradient-btn pulse-btn text-white w-full sm:w-auto px-7 py-4 min-h-[52px] rounded-2xl font-black text-base sm:text-lg shadow-2xl flex items-center justify-center gap-2.5 active:scale-95 transition-all"
+307            >
+308              <span>Записаться на курс</span>
+309              <ArrowRight className="w-5 h-5 flex-shrink-0 animate-bounce" style={{ animationDuration: "2s" }} />
+310            </a>
+311          </div>
+312        </div>
+313
+314        <div className="lg:col-span-5 w-full flex items-center justify-center relative mt-2 lg:mt-0">
+315          <div className="relative group w-full max-w-lg mx-auto">
+316            <div className="absolute -inset-1.5 bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 rounded-3xl blur-lg opacity-40 group-hover:opacity-80 transition duration-500 animate-pulse"></div>
+317
+318            <div className="relative w-full rounded-2xl bg-slate-950 border border-white/20 shadow-2xl overflow-hidden">
+319              <div className="scanline-effect" />
+320
+321              <div className="bg-slate-900/95 px-3.5 py-2.5 border-b border-white/10 flex items-center justify-between relative z-10">
+322                <div className="flex items-center gap-1.5">
+323                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+324                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+325                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+326                </div>
+327                <span className="text-[11px] sm:text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
+328                  <Code2 className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
+329                  script.lua — Roblox Studio
+330                </span>
+331                <div className="flex items-center gap-1">
+332                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+333                  <span className="text-[9px] font-mono text-emerald-400 font-bold">LIVE</span>
+334                </div>
+335              </div>
+336
+337              <img
+338                src={heroImageUrl}
+339                alt="Roblox Studio Lua Code Editor"
+340                className="w-full h-auto object-cover"
+341              />
+342            </div>
+343          </div>
+344        </div>
+345
+346      </div>
+347    </section>
+348  );
+349}
+350
+351// ==================== MAIN COMPONENT ====================
+352
+353const faqItems = [
+354  {
+355    id: 1,
+356    badge: "⚡ Старт с 0",
+357    icon: Code2,
+358    question: "Нужно ли уметь программировать до начала курса?",
+359    answer: "Абсолютно нет! Курс создавался специально для тех, кто никогда не открывал Roblox Studio и не написал ни строчки кода. Мы начинаем с фундаментальных понятий и пошагово переходим к простым скриптам на Lua.",
+360    tip: "💡 Тебе понадобится только компьютер и установленный Roblox."
+361  },
+362  {
+363    id: 2,
+364    badge: "⏰ Удобный график",
+365    icon: Zap,
+366    question: "Сколько времени занимает прохождение курса?",
+367    answer: "Занятия рассчитаны примерно на 3 часа в день. Материал подан максимально структурировано и понятно, поэтому вы сможете уверенно проходить уроки день за днём.",
+368    tip: "⏳ Вы можете заниматься в удобном темпе, а доступ ко всем материалам остаётся у вас навсегда."
+369  },
+370  {
+371    id: 3,
+372    badge: "👥 Для всех",
+373    icon: Users,
+374    question: "С какого возраста подходит обучение?",
+375    answer: "Материал адаптирован для детей от 10 лет, подростков и взрослых. Вся информация изложена понятным языком с наглядными примерами и готовыми заготовками.",
+376    tip: "🎮 Главное — интерес к играм и желание созидать."
+377  },
+378  {
+379    id: 4,
+380    badge: "💎 Монетизация",
+381    icon: Coins,
+382    question: "Как именно я смогу зарабатывать на своих играх?",
+383    answer: "В Roblox вы зарабатываете внутриигровую валюту Robux с помощью продажи геймпасов, виртуальной одежды, VIP-доступов и систем внутри игры. Далее Robux можно официально выводить в реальные деньги через программу Roblox DevEx.",
+384    tip: "💰 В 5-м модуле вы узнаете всю необходимую информацию по настройке внутриигрового магазина."
+385  },
+386  {
+387    id: 5,
+388    badge: "🛡️ Помощь 24/7",
+389    icon: ShieldCheck,
+390    question: "Что делать, если в коде возникнет ошибка?",
+391    answer: "У вас будет доступ к закрытому чату учеников и кураторов. Если скрипт не работает или появилась ошибка — просто отправляете скриншот в чат, и менторы помогают исправить ошибку.",
+392    tip: "🤝 Среднее время ответа куратора — 10-15 минут."
+393  }
+394];
+395
+396const premiumBenefits = [
+397  { text: "Полный доступ к 5 практическим модулям от основ до релиза" },
+398  { text: "Изучение языка программирования Lua на реальных примерах" },
+399  { text: "3D-моделирование, работа с освещением, ландшафтом и текстурами" },
+400  { text: "Разработка механик: сохранения DataStore, лидерборды, инвентарь" },
+401  { text: "Создание искусственного интеллекта для врагов и NPC" },
+402  { text: "Монетизация проектов: Game Passes, внутренний магазин и вывод через DevEx" },
+403  { text: "Закрытое сообщество разработчиков и личная поддержка менторов" },
+404  { text: "Пожизненный доступ ко всем материалам и будущим обновлениям" }
+405];
+406
+407const skills = [
+408  {
+409    id: 1,
+410    emoji: "https://storage.googleapis.com/producer-app-public/producer/1da59da6-efbf-4e00-85f7-b0faae1d6ce4",
+411    title: "Программировать на Lua",
+412    desc: "Пиши скрипты, управляй объектами и оживляй свои задумки с самых основ.",
+413    badge: "Кодинг",
+414    stat: "База знаний кодинга",
+415    gradient: "from-purple-600/50 via-fuchsia-600/40 to-pink-500/40",
+416    icon: Code2
+417  },
+418  {
+419    id: 2,
+420    emoji: "https://storage.googleapis.com/producer-app-public/producer/7ec7a37a-300b-4f49-9bbf-f73c6378e8c6",
+421    title: "Строить карты и миры",
+422    desc: "Создавай локации любой сложности, настраивай атмосферное освещение и ландшафты.",
+423    badge: "3D Дизайн",
+424    stat: "3D Моделирование",
+425    gradient: "from-pink-600/50 via-purple-600/40 to-rose-500/40",
+426    icon: Layers
+427  },
+428  {
+429    id: 3,
+430    emoji: "https://storage.googleapis.com/producer-app-public/producer/bd2d95ec-b9f8-4c89-9eb9-0d7b023ad5dc",
+431    title: "Создавать NPC и врагов",
+432    desc: "Программируй поведение персонажей, паттерны атак и искусственный интеллект.",
+433    badge: "AI Механики",
+434    stat: "Умный AI",
+435    gradient: "from-fuchsia-600/50 via-rose-600/40 to-purple-600/40",
+436    icon: Bot
+437  },
+438  {
+439    id: 4,
+440    emoji: "https://storage.googleapis.com/producer-app-public/producer/db377349-cd2b-40e0-b6e1-d9cf1703d560",
+441    title: "Делать системы квестов",
+442    desc: "Разрабатывай захватывающие сюжеты, диалоги, инвентарь и логику выполнения задач.",
+443    badge: "Геймдизайн",
+444    stat: "Сюжетная логика",
+445    gradient: "from-purple-600/50 via-pink-600/40 to-amber-500/40",
+446    icon: ScrollText
+447  },
+448  {
+449    id: 5,
+450    emoji: "https://storage.googleapis.com/producer-app-public/producer/ac0e3600-8c63-4580-b892-b91a9398e017",
+451    title: "Настраивать монетизацию",
+452    desc: "Внедряй Game Passes, внутриигловой магазин и выводи деньги через DevEx.",
+453    badge: "Доход",
+454    stat: "Реальный доход",
+455    gradient: "from-pink-600/50 via-rose-600/40 to-amber-500/40",
+456    icon: Coins
+457  },
+458  {
+459    id: 6,
+460    emoji: "https://storage.googleapis.com/producer-app-public/producer/d105cf1d-9290-4761-b900-b2011129abee",
+461    title: "Публиковать игры в Roblox",
+462    desc: "Запускай игры на миллионы игроков, оптимизируй баги и привлекай аудиторию.",
+463    badge: "Релиз",
+464    stat: "Миллионы игроков",
+465    gradient: "from-fuchsia-600/50 via-purple-600/40 to-rose-500/40",
+466    icon: Rocket
+467  }
+468];
+469
+470const modules = [
+471  { id: 1, numberImg: "https://storage.googleapis.com/producer-app-public/producer/b9b4d89b-97ac-4713-9752-ba6ae9c07412", title: "Модуль 1 — СТАРТ", lessons: "3 этапа | 4 дня", desc: "Что ты изучишь: Установка Roblox Studio, интерфейс, первые объекты, ландшафт и освещение." },
+472  { id: 2, numberImg: "https://storage.googleapis.com/producer-app-public/producer/31d71554-74c6-4da6-8634-3d59ab3edf4e", title: "Модуль 2 — ДИЗАЙН", lessons: "4 этапа | 4 дня", desc: "Что ты изучишь: Сложные формы, текстуры, дизайн уровней, детализация и оптимизация карты." },
+473  { id: 3, numberImg: "https://storage.googleapis.com/producer-app-public/producer/ed53e07f-222f-43b6-93d5-57bb706b0770", title: "Модуль 3 — КОД", lessons: "5 этапов | 5 дней", desc: "Что ты изучишь: Программирование на Lua с нуля: переменные, условия, функции, события, циклы." },
+474  { id: 4, numberImg: "https://storage.googleapis.com/producer-app-public/producer/23e0c145-56ed-4d87-a9ea-d55c27eda8be", title: "Модуль 4 — СИСТЕМЫ", lessons: "4 этапа | 4 дня", desc: "Что ты изучишь: Leaderstats, инвентарь, сохранение (DataStore), NPC и искусственный интеллект." },
+475  { id: 5, numberImg: "https://storage.googleapis.com/producer-app-public/producer/0afc4677-a862-4a6b-a8b0-dfc0a52bed97", title: "Модуль 5 — РЕЛИЗ", lessons: "2 этапа | 4 дня", desc: "Что ты изучишь: AI Assistant, тестирование, публикация игры, Game Passes и DevEx." }
+476];
+477
+478export default function Component() {
+479  const [openFaq, setOpenFaq] = useState<number | null>(1);
+480  const [isModalOpen, setIsModalOpen] = useState(false);
+481  const [selectedTariff, setSelectedTariff] = useState("Стартовый");
+482  const [isSubmitted, setIsSubmitted] = useState(false);
+483  const [formData, setFormData] = useState({ name: "", contact: "" });
+484  const [scrollProgress, setScrollProgress] = useState(0);
+485  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+486  const [scrollBlur, setScrollBlur] = useState(0);
+487
+488  useEffect(() => {
+489    let lastScrollY = window.scrollY;
+490    let velocity = 0;
+491    let rafId: number;
+492
+493    const tick = () => {
+494      const currentY = window.scrollY;
+495      const delta = Math.abs(currentY - lastScrollY);
+496      lastScrollY = currentY;
+497
+498      velocity += (delta - velocity) * 0.35;
+499      const targetBlur = Math.min(Math.max((velocity - 1.5) * 0.4, 0), 10);
+500      setScrollBlur(targetBlur);
+501
+502      rafId = requestAnimationFrame(tick);
+503    };
+504
+505    rafId = requestAnimationFrame(tick);
+506    return () => cancelAnimationFrame(rafId);
+507  }, []);
+508
+509  useEffect(() => {
+510    const handleMouseMove = (e: MouseEvent) => {
+511      setMousePos({ x: e.clientX, y: e.clientY });
+512    };
+513    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+514    return () => window.removeEventListener("mousemove", handleMouseMove);
+515  }, []);
+516
+517  useEffect(() => {
+518    const observer = new IntersectionObserver(
+519      (entries) => {
+520        entries.forEach((entry) => {
+521          if (entry.isIntersecting) {
+522            entry.target.classList.remove("scroll-item-hidden");
+523            entry.target.classList.add("scroll-item-visible");
+524          } else {
+525            entry.target.classList.remove("scroll-item-visible");
+526            entry.target.classList.add("scroll-item-hidden");
+527          }
+528        });
+529      },
+530      { threshold: 0.1, rootMargin: "-30px 0px -30px 0px" }
+531    );
+532
+533    const elements = document.querySelectorAll(".supreme-glow-card, .skill-card, .game-card, .scroll-reveal");
+534    elements.forEach((el) => {
+535      el.classList.add("scroll-item-fade", "scroll-item-hidden");
+536      observer.observe(el);
+537    });
+538
+539    return () => observer.disconnect();
+540  }, []);
+541
+542  const createRipple = (e: React.MouseEvent<HTMLElement>) => {
+543    const button = e.currentTarget;
+544    const circle = document.createElement("span");
+545    const diameter = Math.max(button.clientWidth, button.clientHeight);
+546    const radius = diameter / 2;
+547    const rect = button.getBoundingClientRect();
+548
+549    circle.style.width = circle.style.height = `${diameter}px`;
+550    circle.style.left = `${e.clientX - rect.left - radius}px`;
+551    circle.style.top = `${e.clientY - rect.top - radius}px`;
+552    circle.classList.add("ripple-wave");
+553
+554    const existing = button.getElementsByClassName("ripple-wave")[0];
+555    if (existing) existing.remove();
+556    button.appendChild(circle);
+557  };
+558
+559  const handleScrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+560    e.preventDefault();
+561    const element = document.getElementById(id);
+562    if (element) {
+563      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+564    }
+565  };
+566
+567  const handleOpenEnroll = (tariffName: string = "Стартовый", e?: React.MouseEvent<HTMLElement>) => {
+568    if (e) createRipple(e);
+569    setSelectedTariff(tariffName);
+570    setIsModalOpen(true);
+571    setIsSubmitted(false);
+572  };
+573
+574  const handleSubmit = (e: React.FormEvent) => {
+575    e.preventDefault();
+576    setIsSubmitted(true);
+577    setTimeout(() => {
+578      setIsModalOpen(false);
+579      setIsSubmitted(false);
+580      setFormData({ name: "", contact: "" });
+581    }, 2500);
+582  };
+583
+584  return (
+585    <div className="min-h-screen w-full bg-[#090D16] text-slate-100 font-sans selection:bg-purple-500 selection:text-white relative overflow-x-hidden">
+586
+587      {/* Global Dynamic Styles */}
+588      <style>{`
+589        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;900&family=Unbounded:wght@800;900&display=swap');
+590
+591        html { scroll-behavior: smooth; }
+592        .font-heading { font-family: 'Space Grotesk', sans-serif; }
+593        .price-font { font-family: 'Unbounded', sans-serif; letter-spacing: -0.04em; }
+594        body, button, input { font-family: 'Plus Jakarta Sans', sans-serif; }
+595
+596        ::-webkit-scrollbar { width: 10px; }
+597        ::-webkit-scrollbar-track { background: #090D16; }
+598        ::-webkit-scrollbar-thumb {
+599          background: linear-gradient(180deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%);
+600          border-radius: 9999px;
+601          border: 2px solid #090D16;
+602        }
+603
+604        @keyframes floatSmooth1 {
+605          0%, 100% { transform: translateY(0px) rotate(0deg); }
+606          50% { transform: translateY(-12px) rotate(1.2deg); }
+607        }
+608
+609        @keyframes floatSmooth2 {
+610          0%, 100% { transform: translateY(0px) rotate(0deg); }
+611          50% { transform: translateY(-9px) rotate(-1.5deg); }
+612        }
+613
+614        @keyframes floatSmooth3 {
+615          0%, 100% { transform: translateY(0px) scale(1) rotate(0deg); }
+616          50% { transform: translateY(-14px) scale(1.015) rotate(0.8deg); }
+617        }
+618
+619        @keyframes floatSmooth4 {
+620          0%, 100% { transform: translateY(0px) translateX(0px); }
+621          33% { transform: translateY(-8px) translateX(4px); }
+622          66% { transform: translateY(-12px) translateX(-4px); }
+623        }
+624
+625        @keyframes floatSmooth5 {
+626          0%, 100% { transform: translateY(0px) scale(1); }
+627          50% { transform: translateY(-10px) scale(1.02); }
+628        }
+629
+630        @keyframes floatIcon3D {
+631          0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+632          50% { transform: translateY(-10px) rotate(-4deg) scale(1.08); }
+633        }
+634
+635        @keyframes floatBadge {
+636          0%, 100% { transform: translateY(0px) rotate(0deg); }
+637          50% { transform: translateY(-4px) rotate(2deg); }
+638        }
+639
+640        @keyframes cosmicFlowSmooth {
+641          0% { background-position: 0% 50%; }
+642          50% { background-position: 100% 50%; }
+643          100% { background-position: 0% 50%; }
+644        }
+645
+646        @keyframes cosmicFlow {
+647          0% { background-position: 0% 50%; }
+648          50% { background-position: 100% 50%; }
+649          100% { background-position: 0% 50%; }
+650        }
+651
+652        .animated-card-motion { animation: floatSmooth1 6.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+653        .animated-card-motion-alt { animation: floatSmooth2 7.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+654        .animated-card-motion-slow { animation: floatSmooth3 8.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+655        .animated-bobbing { animation: floatSmooth5 5.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+656        .animated-glow-pulse { animation: pulseGlowSlow 5s ease-in-out infinite; }
+657
+658        .stagger-anim-1 { animation: floatSmooth1 6s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0s infinite; }
+659        .stagger-anim-2 { animation: floatSmooth2 7s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0.8s infinite; }
+660        .stagger-anim-3 { animation: floatSmooth3 8s cubic-bezier(0.45, 0.05, 0.55, 0.95) 1.6s infinite; }
+661        .stagger-anim-4 { animation: floatSmooth4 6.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) 2.4s infinite; }
+662        .stagger-anim-5 { animation: floatSmooth1 7.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) 3.2s infinite; }
+663        .float-icon-3d { animation: floatIcon3D 4.5s ease-in-out infinite; }
+664        .float-badge-anim { animation: floatBadge 3.5s ease-in-out infinite; }
+665
+666        .gradient-btn {
+667          background: linear-gradient(135deg, #7C3AED 0%, #D946EF 30%, #EC4899 60%, #F43F5E 80%, #F59E0B 100%);
+668          background-size: 250% 250%;
+669          animation: cosmicFlowSmooth 8s ease-in-out infinite;
+670          transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+671          position: relative;
+672          overflow: hidden;
+673        }
+674
+675        .animated-gradient-text {
+676          background: linear-gradient(120deg, #EC4899 0%, #D946EF 25%, #A855F7 50%, #7C3AED 75%, #F43F5E 90%, #EC4899 100%);
+677          background-size: 300% 300%;
+678          -webkit-background-clip: text;
+679          -webkit-text-fill-color: transparent;
+680          animation: cosmicFlowSmooth 5s ease-in-out infinite;
+681        }
+682
+683        .running-border {
+684          background: linear-gradient(90deg, #7C3AED, #D946EF, #EC4899, #F43F5E, #FB923C, #7C3AED);
+685          background-size: 300% 300%;
+686          animation: cosmicFlow 5s linear infinite;
+687        }
+688
+689        .supreme-glow-card {
+690          background: rgba(11, 15, 27, 0.85);
+691          backdrop-filter: blur(28px);
+692          border: 1px solid rgba(255, 255, 255, 0.12);
+693          transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+694          animation: floatSubtleContinuous 8s ease-in-out infinite;
+695        }
+696        .supreme-glow-card:hover {
+697          transform: translateY(-8px) scale(1.02);
+698          border-color: rgba(236, 72, 153, 0.7);
+699          box-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.5);
+700        }
+701
+702        .skill-card {
+703          background: rgba(13, 18, 30, 0.8);
+704          backdrop-filter: blur(24px);
+705          border: 1px solid rgba(255, 255, 255, 0.1);
+706          transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+707        }
+708        .skill-card:hover {
+709          transform: translateY(-10px) scale(1.025);
+710          background: rgba(18, 25, 42, 0.95);
+711          border-color: rgba(236, 72, 153, 0.6);
+712          box-shadow: 0 30px 60px -15px rgba(0,0,0,0.8), 0 0 35px rgba(236, 72, 153, 0.3);
+713        }
+714
+715        .game-card {
+716          background: rgba(13, 18, 30, 0.85);
+717          backdrop-filter: blur(24px);
+718          border: 1px solid rgba(255, 255, 255, 0.12);
+719          border-radius: 2rem;
+720          transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+721        }
+722        .game-card:hover {
+723          transform: translateY(-10px) scale(1.02);
+724          background: rgba(20, 26, 45, 0.98);
+725          border-color: rgba(236, 72, 153, 0.6);
+726          box-shadow: 0 30px 60px -15px rgba(0,0,0,0.8), 0 0 40px rgba(168, 85, 247, 0.4);
+727        }
+728
+729        .scanline-effect {
+730          position: absolute;
+731          inset: 0;
+732          background: linear-gradient(to bottom, transparent, rgba(236, 72, 153, 0.2), transparent);
+733          height: 15px;
+734          animation: scanline 5s linear infinite;
+735          pointer-events: none;
+736        }
+737
+738        @keyframes scanline {
+739          0% { transform: translateY(-100%); }
+740          100% { transform: translateY(1000%); }
+741        }
+742
+743        @keyframes heroBounce {
+744          0%, 100% { transform: translateY(0); opacity: 0.8; }
+745          50% { transform: translateY(10px); opacity: 1; }
+746        }
+747        .hero-arrow-bounce { animation: heroBounce 2s infinite ease-in-out; }
+748
+749        .nav-link { position: relative; transition: color 0.3s ease; }
+750        .nav-link::after {
+751          content: ''; position: absolute; width: 0%; height: 2px; bottom: -4px; left: 0;
+752          background: linear-gradient(90deg, #4F46E5, #EC4899);
+753          transition: width 0.3s ease; border-radius: 99px;
+754        }
+755        .nav-link:hover::after { width: 100%; }
+756
+757        span.ripple-wave {
+758          position: absolute; border-radius: 50%; transform: scale(0);
+759          animation: ripple 600ms linear; background-color: rgba(255, 255, 255, 0.45);
+760          pointer-events: none;
+761        }
+762        @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+763      `}</style>
+764
+765      {/* Dynamic Canvas Background with Floating Nodes */}
+766      <InteractiveBackground />
+767
+768      {/* Spotlight Effect */}
+769      <div className="fixed inset-0 pointer-events-none z-0">
+770        <div
+771          className="absolute inset-0 transition-opacity duration-300 pointer-events-none"
+772          style={{
+773            background: `radial-gradient(650px circle at ${mousePos.x}px ${mousePos.y}px, rgba(168, 85, 247, 0.15), rgba(236, 72, 153, 0.06) 40%, transparent 80%)`
+774          }}
+775        />
+776        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-purple-600/20 via-pink-600/15 to-transparent rounded-full blur-[140px] pointer-events-none animate-pulse" />
+777      </div>
+778
+779      {/* Header */}
+780      <Header scrollProgress={scrollProgress} onOpenEnroll={handleOpenEnroll} onScrollTo={handleScrollTo} />
+781
+782      <main
+783        className="w-full relative z-10 pt-20 transition-all duration-75 ease-out"
+784        style={{
+785          filter: scrollBlur > 0.3 ? `blur(0px ${scrollBlur.toFixed(1)}px)` : "none",
+786          transform: scrollBlur > 0.3 ? `scaleY(${1 + scrollBlur * 0.002})` : "none"
+787        }}
+788      >
+789        {/* Hero Section */}
+790        <Hero heroImageUrl={heroImageUrl} onOpenEnroll={handleOpenEnroll} onScrollTo={handleScrollTo} />
+791
+792        {/* Skills Section */}
+793        <section id="skills" className="py-24 px-4 sm:px-6 bg-[#0B0F1D] border-y border-white/10 relative overflow-hidden">
+794          <div className="absolute top-0 left-0 right-0 h-[1px] running-border opacity-70" />
+795          <div className="absolute bottom-0 left-0 right-0 h-[1px] running-border opacity-70" />
+796
+797          <div className="max-w-6xl mx-auto relative z-10">
+798            <div className="text-center max-w-2xl mx-auto mb-16 animated-bobbing scroll-reveal">
+799              <h2 className="text-3xl sm:text-5xl font-heading font-black text-white tracking-tight mb-4 animated-gradient-text">
+800                Чему ты научишься
+801              </h2>
+802              <p className="text-slate-400 text-base sm:text-lg font-medium">
+803                Полный стек знаний для создания профессиональных 3D-игр прямо в Roblox Studio
+804              </p>
+805            </div>
+806
+807            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+808              {skills.map((item, idx) => {
+809                const IconComponent = item.icon;
+810                const animClass = idx % 3 === 0 ? 'stagger-anim-1' : idx % 3 === 1 ? 'stagger-anim-2' : 'stagger-anim-3';
+811                return (
+812                  <div key={item.id} className={`skill-card rounded-3xl p-8 flex flex-col justify-between gap-6 relative overflow-hidden group ${animClass}`}>
+813                    <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${item.gradient} opacity-90`} />
+814
+815                    <div>
+816                      <div className="w-full flex items-center justify-between mb-6">
+817                        {/* Free-floating 3D Art with smooth continuous float */}
+818                        <div className="relative group/art cursor-pointer">
+819                          <div className={`absolute -inset-4 bg-gradient-to-tr ${item.gradient} rounded-full blur-2xl opacity-50 group-hover/art:opacity-100 group-hover/art:scale-125 transition-all duration-700 pointer-events-none`} />
+820
+821                          <div className="relative w-24 h-24 flex items-center justify-center rounded-3xl overflow-hidden transform group-hover:scale-125 group-hover:-rotate-6 transition-all duration-500 ease-out float-icon-3d" style={{ animationDelay: `${idx * 0.4}s` }}>
+822                            <img
+823                              src={item.emoji}
+824                              alt={item.title}
+825                              className="w-full h-full object-cover rounded-3xl filter drop-shadow-[0_12px_24px_rgba(236,72,153,0.5)] transform group-hover:scale-110 transition-transform duration-500"
+826                            />
+827                            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-slate-900/90 border border-white/20 flex items-center justify-center text-pink-300 shadow-xl group-hover:scale-125 group-hover:bg-pink-600 group-hover:text-white transition-all duration-300 float-badge-anim">
+828                              <IconComponent className="w-3.5 h-3.5" />
+829                            </div>
+830                          </div>
+831                        </div>
+832
+833                        <span className="text-[11px] font-black uppercase tracking-wider text-pink-300 bg-slate-900/90 px-3.5 py-1.5 rounded-full border border-pink-500/40 group-hover:border-pink-500/80 group-hover:bg-pink-900/80 group-hover:text-white transition-all duration-300 float-badge-anim" style={{ animationDelay: `${idx * 0.3}s` }}>
+834                          {item.badge}
+835                        </span>
+836                      </div>
+837
+838                      <h3 className="text-xl font-heading font-black text-white mb-2.5 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-200 group-hover:to-pink-200 transition-all">
+839                        {item.title}
+840                      </h3>
+841                      <p className="text-sm text-slate-300 font-medium leading-relaxed group-hover:text-white transition-colors">
+842                        {item.desc}
+843                      </p>
+844                    </div>
+845                  </div>
+846                );
+847              })}
+848            </div>
+849          </div>
+850        </section>
+851
+852        {/* Program Section */}
+853        <section id="program" className="py-24 px-4 sm:px-6 max-w-6xl mx-auto relative overflow-hidden">
+854          <div className="max-w-4xl mx-auto relative z-10">
+855            <div className="text-center mb-16 animated-bobbing scroll-reveal">
+856              <h2 className="text-4xl sm:text-5xl font-heading font-black text-white tracking-tight mb-4 animated-gradient-text">
+857                Программа курса
+858              </h2>
+859              <p className="text-slate-400 text-base sm:text-lg max-w-xl mx-auto font-medium">
+860                5 насыщенных модулей — от запуска Roblox Studio до публикации собственной игры
+861              </p>
+862            </div>
+863
+864            <div className="flex flex-col gap-5 mb-16">
+865              {modules.map((mod, idx) => {
+866                const animClass = idx % 3 === 0 ? 'stagger-anim-1' : idx % 3 === 1 ? 'stagger-anim-2' : 'stagger-anim-3';
+867                return (
+868                  <div key={mod.id} className={`game-card p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 group ${animClass}`} style={{ animationDelay: `${idx * 0.35}s` }}>
+869                    <div className="flex items-start sm:items-center gap-5 relative z-10">
+870                      <div className="relative flex-shrink-0 float-icon-3d" style={{ animationDelay: `${idx * 0.5}s` }}>
+871                        <div className="absolute -inset-2 bg-gradient-to-tr from-purple-600 via-pink-500 to-amber-500 rounded-3xl blur-md opacity-70 group-hover:opacity-100 transition-opacity animate-pulse" />
+872                        <div className="relative w-16 h-16 rounded-2xl bg-slate-950 border border-white/15 flex items-center justify-center p-1.5 shadow-xl overflow-hidden">
+873                          <img
+874                            src={mod.numberImg}
+875                            alt={`Модуль ${mod.id}`}
+876                            className="w-full h-full object-contain mix-blend-screen drop-shadow-[0_4px_12px_rgba(236,72,153,0.5)] animate-pulse"
+877                            style={{ animationDuration: `${3.5 + idx}s` }}
+878                          />
+879                        </div>
+880                      </div>
+881
+882                      <div className="flex flex-col gap-1">
+883                        <h3 className="text-xl sm:text-2xl font-heading font-black text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-300 group-hover:to-amber-300 transition-all">
+884                          {mod.title}
+885                        </h3>
+886                        <p className="text-sm text-slate-300 font-medium leading-relaxed max-w-xl group-hover:text-white transition-colors">
+887                          {mod.desc}
+888                        </p>
+889                      </div>
+890                    </div>
+891
+892                    <div className="flex items-center gap-3 self-start sm:self-center relative z-10">
+893                      <div className="w-10 h-10 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center text-slate-400 group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-pink-600 group-hover:text-white group-hover:scale-110 transition-all float-icon-3d">
+894                        <ArrowRight className="w-5 h-5" />
+895                      </div>
+896                    </div>
+897                  </div>
+898                );
+899              })}
+900            </div>
+901
+902            <div className="w-full rounded-3xl bg-slate-950 border border-white/15 p-2 sm:p-3 relative overflow-hidden shadow-2xl group hover:border-purple-500/70 transition-all animated-card-motion-slow">
+903              <div className="relative w-full rounded-2xl overflow-hidden aspect-[16/9] sm:aspect-[21/9]">
+904                <img
+905                  src="https://storage.googleapis.com/producer-app-public/producer/d822e160-7671-4b13-8bd5-35c7f6c8fefe"
+906                  alt="Процесс обучения кодингу Roblox"
+907                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+908                />
+909              </div>
+910            </div>
+911          </div>
+912        </section>
+913
+914        <section id="tariffs" className="py-20 sm:py-28 px-4 sm:px-6 bg-[#080C14] border-t border-white/10 relative overflow-hidden">
+915          {/* Subtle Background Glow */}
+916          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-purple-600/10 rounded-full blur-[160px] pointer-events-none" />
+917
+918          <div className="max-w-4xl mx-auto relative z-10">
+919            {/* Header */}
+920            <div className="text-center max-w-2xl mx-auto mb-14 scroll-reveal">
+921              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-semibold tracking-wider uppercase mb-4">
+922                <Check className="w-3.5 h-3.5" />
+923                <span>Единый тариф</span>
+924              </div>
+925              <h2 className="text-3xl sm:text-5xl font-heading font-black text-white tracking-tight mb-3">
+926                Стоимость обучения
+927              </h2>
+928              <p className="text-slate-400 text-sm sm:text-base font-medium">
+929                Всё необходимое для старта в разработке игр без скрытых платежей
+930              </p>
+931            </div>
+932
+933            {/* Clean Premium Tariff Card */}
+934            <div className="relative rounded-3xl bg-[#0D1322] border border-white/12 p-6 sm:p-10 shadow-2xl overflow-hidden hover:border-purple-500/40 transition-all duration-300">
+935
+936              {/* Badge */}
+937              <div className="flex items-center justify-between pb-6 mb-8 border-b border-white/10 flex-wrap gap-4">
+938                <div>
+939                  <h3 className="text-xl sm:text-2xl font-heading font-black text-white">
+940                    Полный курс Roblox Forge
+941                  </h3>
+942                  <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">
+943                    5 модулей • Доступ навсегда
+944                  </p>
+945                </div>
+946
+947                <div className="flex items-baseline gap-3">
+948                  <span className="text-4xl sm:text-6xl font-black font-heading tracking-tight animated-gradient-text filter drop-shadow-[0_0_20px_rgba(217,70,239,0.6)]">
+949                    599 ₽
+950                  </span>
+951                  <span className="text-base sm:text-lg font-semibold text-slate-500 line-through">
+952                    2 990 ₽
+953                  </span>
+954                </div>
+955              </div>
+956
+957              {/* Benefits Checklist */}
+958              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+959                {premiumBenefits.map((item, pIdx) => (
+960                  <div key={pIdx} className="flex items-start gap-3">
+961                    <div className="w-5 h-5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+962                      <Check className="w-3.5 h-3.5" />
+963                    </div>
+964                    <span className="text-sm text-slate-300 font-medium leading-relaxed">
+965                      {item.text}
+966                    </span>
+967                  </div>
+968                ))}
+969              </div>
+970
+971              {/* Action Button & Trust Features */}
+972              <div className="flex flex-col gap-4 relative">
+973                <a
+974                  href="https://t.me/awak3n1n"
+975                  target="_blank"
+976                  rel="noopener noreferrer"
+977                  className="gradient-btn text-white w-full py-4 sm:py-5 rounded-2xl font-black text-lg sm:text-xl shadow-[0_0_35px_rgba(217,70,239,0.5)] hover:shadow-[0_0_50px_rgba(236,72,153,0.8)] active:scale-[0.99] transition-all duration-300 text-center flex items-center justify-center gap-2.5 relative group overflow-hidden border border-white/20"
+978                >
+979                  <span className="relative z-10 font-heading tracking-wide">Купить обучение за 599 ₽</span>
+980                  <ArrowRight className="w-6 h-6 relative z-10 group-hover:translate-x-1.5 transition-transform" />
+981                </a>
+982
+983                <div className="flex items-center justify-center gap-6 pt-2 text-xs text-slate-400 font-medium flex-wrap">
+984                  <span className="flex items-center gap-1.5">
+985                    <ShieldCheck className="w-4 h-4 text-purple-400" /> Доступ сразу после оплаты
+986                  </span>
+987                  <span className="flex items-center gap-1.5">
+988                    <Zap className="w-4 h-4 text-purple-400" /> Поддержка ментора
+989                  </span>
+990                </div>
+991              </div>
+992
+993            </div>
+994          </div>
+995        </section>
+996
+997        {/* FAQ Section */}
+998        <section id="faq" className="py-24 px-4 sm:px-6 max-w-6xl mx-auto relative overflow-hidden">
+999          <div className="text-center max-w-2xl mx-auto mb-12 relative animated-bobbing scroll-reveal">
+1000            <h2 className="text-4xl sm:text-5xl font-heading font-black text-white tracking-tight mb-4 animated-gradient-text">
+1001              Вопросы и ответы
+1002            </h2>
+1003            <p className="text-slate-400 text-base sm:text-lg max-w-xl mx-auto font-medium">
+1004              Всё, что нужно знать перед тем, как погрузиться в создание игр
+1005            </p>
+1006          </div>
+1007
+1008          <div className="grid grid-cols-1 gap-6 max-w-4xl mx-auto relative">
+1009            {faqItems.map((item, idx) => {
+1010              const isOpen = openFaq === item.id;
+1011              const IconComp = item.icon;
+1012              const animClass = idx % 2 === 0 ? 'stagger-anim-1' : 'stagger-anim-2';
+1013              return (
+1014                <div
+1015                  key={item.id}
+1016                  className={`supreme-glow-card rounded-3xl border transition-all duration-500 overflow-hidden ${animClass} ${
+1017                    isOpen
+1018                      ? 'border-pink-500/80 bg-slate-900/95 shadow-2xl shadow-pink-500/30'
+1019                      : 'bg-slate-950/70 border-white/10 hover:border-purple-500/50'
+1020                  }`}
+1021                >
+1022                  <button
+1023                    onClick={(e) => {
+1024                      createRipple(e);
+1025                      setOpenFaq(isOpen ? null : item.id);
+1026                    }}
+1027                    className="w-full px-6 sm:px-8 py-6 text-left flex items-center justify-between gap-4 focus:outline-none group cursor-pointer"
+1028                  >
+1029                    <div className="flex items-center gap-4 sm:gap-6">
+1030                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${
+1031                        isOpen
+1032                          ? 'bg-gradient-to-tr from-purple-600 via-pink-500 to-rose-500 text-white shadow-xl scale-110 rotate-6'
+1033                          : 'bg-slate-900 border border-white/15 text-purple-300 group-hover:border-pink-500/50 group-hover:text-pink-400'
+1034                      }`}>
+1035                        <IconComp className="w-6 h-6 icon-hover-bounce" />
+1036                      </div>
+1037
+1038                      <div>
+1039                        <h3 className={`font-heading font-black text-lg sm:text-xl transition-all ${
+1040                          isOpen ? 'animated-gradient-text' : 'text-white group-hover:text-pink-300'
+1041                        }`}>
+1042                          {item.question}
+1043                        </h3>
+1044                      </div>
+1045                    </div>
+1046
+1047                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all duration-500 ${
+1048                      isOpen ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white rotate-180' : 'bg-slate-900 border border-white/10 text-slate-400'
+1049                    }`}>
+1050                      <ChevronDown className="w-5 h-5" />
+1051                    </div>
+1052                  </button>
+1053
+1054                  <div className={`transition-all duration-500 overflow-hidden ${isOpen ? 'max-h-[500px] opacity-100 border-t border-white/10' : 'max-h-0 opacity-0'}`}>
+1055                    <div className="p-6 sm:p-8 pt-6 flex flex-col gap-4">
+1056                      <p className="text-slate-200 text-base leading-relaxed font-medium sm:pl-20">
+1057                        {item.answer}
+1058                      </p>
+1059                      <div className="sm:ml-20 p-4 rounded-2xl bg-slate-900/90 border border-purple-500/30 text-xs font-bold text-pink-300 flex items-center gap-3">
+1060                        <span>{item.tip}</span>
+1061                      </div>
+1062                    </div>
+1063                  </div>
+1064                </div>
+1065              );
+1066            })}
+1067          </div>
+1068
+1069          <div className="mt-14 p-8 rounded-3xl bg-slate-950 border border-white/15 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden group hover:border-pink-500/60 transition-all animated-card-motion-slow">
+1070            <div className="flex items-center gap-5 relative z-10">
+1071              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 via-pink-500 to-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all">
+1072                <MessageSquare className="w-7 h-7 animate-bounce" />
+1073              </div>
+1074              <div>
+1075                <h4 className="text-white font-heading font-black text-xl mb-1">Остались личные вопросы?</h4>
+1076                <p className="text-slate-300 text-sm font-medium">Задай любой вопрос нашему наставнику в Telegram за 2 минуты</p>
+1077              </div>
+1078            </div>
+1079
+1080            <a
+1081              href="https://t.me/awak3n1n"
+1082              target="_blank"
+1083              rel="noreferrer"
+1084              onClick={(e) => createRipple(e as any)}
+1085              className="gradient-btn text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl whitespace-nowrap active:scale-95 flex items-center gap-2 hover:scale-105 transition-transform"
+1086            >
+1087              <span>Задать вопрос в Telegram</span>
+1088              <Send className="w-4 h-4" />
+1089            </a>
+1090          </div>
+1091        </section>
+1092      </main>
+1093
+1094      {/* Footer */}
+1095      <footer className="bg-[#060911] text-slate-400 py-12 px-4 sm:px-6 border-t border-white/10 relative z-10">
+1096        <div className="max-w-6xl mx-auto flex flex-col gap-8 text-center md:text-left">
+1097          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+1098            <div className="flex items-center gap-2.5 group">
+1099              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#7C3AED] via-[#D946EF] to-[#F43F5E] flex items-center justify-center text-white shadow-md group-hover:rotate-6 group-hover:scale-110 transition-transform">
+1100                <Gamepad2 className="w-5 h-5 animate-spin" style={{ animationDuration: "8s" }} />
+1101              </div>
+1102              <span className="font-heading font-black text-xl text-white tracking-tight group-hover:text-pink-400 transition-colors">
+1103                THE ROBLOX FORGE
+1104              </span>
+1105            </div>
+1106
+1107            <div className="flex flex-wrap justify-center gap-4 sm:gap-8 text-sm font-semibold">
+1108              <a href="#about" onClick={(e) => handleScrollTo(e, "about")} className="nav-link py-2 hover:text-white min-h-[44px] flex items-center">О курсе</a>
+1109              <a href="#skills" onClick={(e) => handleScrollTo(e, "skills")} className="nav-link py-2 hover:text-white min-h-[44px] flex items-center">Навыки</a>
+1110              <a href="#program" onClick={(e) => handleScrollTo(e, "program")} className="nav-link py-2 hover:text-white min-h-[44px] flex items-center">Программа</a>
+1111              <a href="#tariffs" onClick={(e) => handleScrollTo(e, "tariffs")} className="nav-link py-2 hover:text-white min-h-[44px] flex items-center">Тарифы</a>
+1112              <a href="#faq" onClick={(e) => handleScrollTo(e, "faq")} className="nav-link py-2 hover:text-white min-h-[44px] flex items-center">FAQ</a>
+1113            </div>
+1114          </div>
+1115
+1116          <div className="pt-6 border-t border-white/10 text-center text-xs text-slate-500 font-medium">
+1117            <p>© 2026 Все права защищены. Сделано с ❤️ для будущих разработчиков Roblox.</p>
+1118          </div>
+1119        </div>
+1120      </footer>
+1121
+1122      {/* Modal */}
+1123      {isModalOpen && (
+1124        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+1125          <div className="bg-[#0F172A] w-full max-w-md rounded-3xl p-8 border border-white/15 shadow-2xl relative">
+1126            <button
+1127              onClick={() => setIsModalOpen(false)}
+1128              className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-transform active:scale-90"
+1129            >
+1130              <X className="w-5 h-5" />
+1131            </button>
+1132
+1133            {isSubmitted ? (
+1134              <div className="py-8 text-center flex flex-col items-center justify-center">
+1135                <div className="w-16 h-16 bg-emerald-950 text-emerald-400 border border-emerald-500/40 rounded-full flex items-center justify-center mb-4 animate-bounce">
+1136                  <Check className="w-8 h-8" />
+1137                </div>
+1138                <h3 className="text-2xl font-bold text-white mb-2 font-heading">Заявка принята!</h3>
+1139                <p className="text-sm text-slate-300">Мы свяжемся с вами в Telegram/Email в ближайшие 15 минут.</p>
+1140              </div>
+1141            ) : (
+1142              <div>
+1143                <h3 className="text-2xl font-heading font-black text-white mb-1">Запись на курс</h3>
+1144                <p className="text-xs text-pink-400 font-bold mb-6">Выбран тариф: «{selectedTariff}»</p>
+1145
+1146                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+1147                  <div>
+1148                    <label className="block text-xs font-extrabold text-slate-300 uppercase mb-1">Ваше имя</label>
+1149                    <input
+1150                      type="text"
+1151                      required
+1152                      placeholder="Александр"
+1153                      value={formData.name}
+1154                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+1155                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/15 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-pink-500 font-medium transition-all"
+1156                    />
+1157                  </div>
+1158
+1159                  <div>
+1160                    <label className="block text-xs font-extrabold text-slate-300 uppercase mb-1">Telegram или Никнейм</label>
+1161                    <input
+1162                      type="text"
+1163                      required
+1164                      placeholder="@username или +7 (999) 000-00-00"
+1165                      value={formData.contact}
+1166                      onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+1167                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/15 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-pink-500 font-medium transition-all"
+1168                    />
+1169                  </div>
+1170
+1171                  <button
+1172                    type="submit"
+1173                    onClick={(e) => createRipple(e)}
+1174                    className="w-full gradient-btn text-white py-4 rounded-xl font-black text-base shadow-xl mt-2 active:scale-95 transition-transform"
+1175                  >
+1176                    Подтвердить запись
+1177                  </button>
+1178                </form>
+1179              </div>
+1180            )}
+1181          </div>
+1182        </div>
+1183      )}
+1184    </div>
+1185  );
+1186}
+1187
